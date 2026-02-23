@@ -304,12 +304,10 @@
     </div>
 
     <div class="footer-note">
-        基于当前仓库 main 分支 · 自动发现所有 .txt 文件 · 点击行内链接预览上下文
     </div>
 
     <script>
         (function() {
-            // 预定义的文件列表 - 直接从你提供的文件名列表生成
             const TXT_FILES = [
                 "Act01_Chapter01_全剧情.txt",
                 "Act01_Chapter02_全剧情.txt",
@@ -349,7 +347,7 @@
                     // 格式: username.github.io/repo-name/
                     const username = window.location.hostname.split('.')[0];
                     const repo = pathSegments[0] || '';
-                    baseUrl = `https://raw.githubusercontent.com/${username}/${repo}/main/`;
+                    baseUrl = `https://gh-proxy.com/https://raw.githubusercontent.com/${username}/${repo}/main/`;
                 } else {
                     // 本地测试或直接访问 - 默认使用AA1x/AA1x仓库
                     baseUrl = `https://raw.githubusercontent.com/AA1x/AA1x/main/`;
