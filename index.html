@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>魔裁剧情全文本搜索</title>
+    <title>魔裁剧情文本搜索</title>
     <style>
         * {
             box-sizing: border-box;
@@ -255,6 +255,31 @@
             display: flex;
             margin-bottom: 2px;
         }
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .file-grid-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-grid-item:hover {
+            border-color: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        @media (prefers-color-scheme: dark) {
+            .file-grid-item {
+                background: #161b22;
+                border-color: #30363d;
+            }
+        }
     </style>
 </head>
 <body>
@@ -266,7 +291,7 @@
         </div>
     </div>
 
-    <div class="stats" id="statsArea">正在加载仓库文本文件列表...</div>
+    <div class="stats" id="statsArea">正在加载文本文件列表...</div>
 
     <div id="resultsArea"></div>
 
@@ -279,14 +304,31 @@
     </div>
 
     <div class="footer-note">
-    
+        基于当前仓库 main 分支 · 自动发现所有 .txt 文件 · 点击行内链接预览上下文
     </div>
 
     <script>
         (function() {
+            // 预定义的文件列表 - 直接从你提供的文件名列表生成
+            const TXT_FILES = [
+                "Act01_Chapter01_全剧情.txt",
+                "Act01_Chapter02_全剧情.txt",
+                "Act01_Chapter03_全剧情.txt",
+                "Act01_Chapter04_全剧情.txt",
+                "Act01_Chapter05_全剧情.txt",
+                "Act02_Chapter01_全剧情.txt",
+                "Act02_Chapter02_全剧情.txt",
+                "Act02_Chapter03_全剧情.txt",
+                "Act02_Chapter04_全剧情.txt",
+                "Act02_Chapter05_全剧情.txt",
+                "Act02_Chapter06_全剧情.txt",
+                "系统文本_System整合.txt",
+                "角色名_CharacterNames整合.txt",
+                "通用剧情_Common整合.txt"
+            ];
+
             let allTxtFiles = [];
             let currentKeyword = '';
-            let abortController = null;
 
             const searchInput = document.getElementById('searchInput');
             const searchBtn = document.getElementById('searchBtn');
@@ -297,96 +339,76 @@
             const previewContent = document.getElementById('previewContent');
             const closePreviewBtn = document.getElementById('closePreviewBtn');
 
-            async function fetchTxtFiles() {
-                statsArea.innerText = '正在扫描仓库中的文本文件...';
+            // 获取当前仓库的基础URL
+            function getBaseUrl() {
+                // 从当前页面URL获取仓库信息
+                const pathSegments = window.location.pathname.split('/').filter(p => p);
+                let baseUrl;
                 
-                try {
-                    // 从当前页面URL获取仓库信息
-                    const pathSegments = window.location.pathname.split('/').filter(p => p);
-                    let owner, repo;
-                    
-                    if (window.location.hostname.includes('github.io')) {
-                        // 格式: username.github.io/repo-name/
-                        owner = window.location.hostname.split('.')[0];
-                        repo = pathSegments[0] || '';
-                    } else {
-                        // 本地测试或自定义域名 - 从URL参数或默认值
-                        const urlParams = new URLSearchParams(window.location.search);
-                        owner = urlParams.get('owner') || 'AA1x';
-                        repo = urlParams.get('repo') || 'AA1x';
-                    }
-
-                    if (!owner || !repo) {
-                        throw new Error('无法确定仓库所有者/名称');
-                    }
-
-                    statsArea.innerText = `正在从 ${owner}/${repo} 获取文件列表...`;
-
-                    // 使用GitHub Contents API获取根目录文件列表
-                    const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/`;
-                    const response = await fetch(contentsUrl);
-                    
-                    if (!response.ok) {
-                        throw new Error(`GitHub API错误: ${response.status}`);
-                    }
-                    
-                    const files = await response.json();
-                    
-                    // 过滤出txt文件
-                    const txtFiles = files.filter(file => 
-                        file.type === 'file' && 
-                        file.name.toLowerCase().endsWith('.txt')
-                    );
-                    
-                    statsArea.innerText = `找到 ${txtFiles.length} 个文本文件，正在加载内容...`;
-                    
-                    // 加载每个文件的内容
-                    const filePromises = txtFiles.map(async (file) => {
-                        try {
-                            const contentResp = await fetch(file.download_url);
-                            const text = await contentResp.text();
-                            const lines = text.split('\n');
-                            return {
-                                path: file.path,
-                                name: file.name,
-                                url: file.download_url,
-                                content: text,
-                                lines: lines,
-                            };
-                        } catch (e) {
-                            console.warn(`加载 ${file.name} 失败:`, e);
-                            return null;
-                        }
-                    });
-                    
-                    const results = await Promise.all(filePromises);
-                    allTxtFiles = results.filter(f => f !== null);
-                    
-                    statsArea.innerText = `已加载 ${allTxtFiles.length} 个文本文件，输入关键词搜索`;
-                    
-                    // 显示文件列表
-                    displayFileList();
-                    
-                    return allTxtFiles;
-                    
-                } catch (err) {
-                    statsArea.innerText = `加载失败: ${err.message}`;
-                    console.error(err);
-                    return [];
+                if (window.location.hostname.includes('github.io')) {
+                    // 格式: username.github.io/repo-name/
+                    const username = window.location.hostname.split('.')[0];
+                    const repo = pathSegments[0] || '';
+                    baseUrl = `https://raw.githubusercontent.com/${username}/${repo}/main/`;
+                } else {
+                    // 本地测试或直接访问 - 默认使用AA1x/AA1x仓库
+                    baseUrl = `https://raw.githubusercontent.com/AA1x/AA1x/main/`;
                 }
+                
+                return baseUrl;
             }
 
-            function displayFileList() {
-                let html = '<ul class="file-list">';
-                allTxtFiles.forEach(file => {
-                    html += `<li class="card">
-                        <div class="file-header">
-                            <span class="file-name">${escapeHtml(file.name)}</span>
-                            <span class="badge">${file.lines.length} 行</span>
-                        </div>
-                    </li>`;
+            const BASE_URL = getBaseUrl();
+
+            async function loadAllFiles() {
+                statsArea.innerText = `正在加载 ${TXT_FILES.length} 个文本文件...`;
+                
+                const filePromises = TXT_FILES.map(async (filename) => {
+                    try {
+                        const url = BASE_URL + encodeURIComponent(filename);
+                        const response = await fetch(url);
+                        
+                        if (!response.ok) {
+                            console.warn(`加载 ${filename} 失败: ${response.status}`);
+                            return null;
+                        }
+                        
+                        const text = await response.text();
+                        const lines = text.split('\n');
+                        
+                        return {
+                            name: filename,
+                            path: filename,
+                            url: url,
+                            content: text,
+                            lines: lines,
+                        };
+                    } catch (e) {
+                        console.warn(`加载 ${filename} 失败:`, e);
+                        return null;
+                    }
                 });
-                html += '</ul>';
+
+                const results = await Promise.all(filePromises);
+                allTxtFiles = results.filter(f => f !== null);
+                
+                statsArea.innerText = `已加载 ${allTxtFiles.length}/${TXT_FILES.length} 个文本文件，输入关键词搜索`;
+                
+                // 显示文件列表
+                displayFileGrid();
+                
+                return allTxtFiles;
+            }
+
+            function displayFileGrid() {
+                let html = '<div class="file-grid">';
+                allTxtFiles.forEach(file => {
+                    html += `<div class="file-grid-item" onclick="document.getElementById('searchInput').focus()">
+                        <div style="font-weight:600; margin-bottom:0.5rem;">📄 ${escapeHtml(file.name)}</div>
+                        <div style="font-size:0.85rem; color:#64748b;">${file.lines.length} 行</div>
+                    </div>`;
+                });
+                html += '</div>';
                 resultsArea.innerHTML = html;
             }
 
@@ -403,7 +425,6 @@
                     for (let i = 0; i < lines.length; i++) {
                         const line = lines[i];
                         if (line.toLowerCase().includes(searchTerm)) {
-                            // 获取上下文：前一行，本行，后一行
                             const start = Math.max(0, i - 1);
                             const end = Math.min(lines.length - 1, i + 1);
                             let contextLines = [];
@@ -554,7 +575,7 @@
                 }
                 
                 if (allTxtFiles.length === 0) {
-                    await fetchTxtFiles();
+                    await loadAllFiles();
                 }
                 
                 currentKeyword = keyword;
@@ -586,7 +607,7 @@
             closePreviewBtn.addEventListener('click', closePreview);
 
             // 自动加载文件列表
-            fetchTxtFiles();
+            loadAllFiles();
         })();
     </script>
 </body>
