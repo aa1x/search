@@ -347,10 +347,10 @@
                     // 格式: username.github.io/repo-name/
                     const username = window.location.hostname.split('.')[0];
                     const repo = pathSegments[0] || '';
-                    baseUrl = `https://gh-proxy.com/https://raw.githubusercontent.com/${username}/${repo}/main/`;
+                    baseUrl = `https://cdn.gh-proxy.org/https://raw.githubusercontent.com/${username}/${repo}/main/`;
                 } else {
                     // 本地测试或直接访问 - 默认使用AA1x/AA1x仓库
-                    baseUrl = `https://gh-proxy.com/https://raw.githubusercontent.com/AA1x/search/main/`;
+                    baseUrl = `https://cdn.gh-proxy.org/https://raw.githubusercontent.com/AA1x/search/main/`;
                 }
                 
                 return baseUrl;
