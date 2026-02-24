@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>魔裁剧情文本搜索</title>
+    <title>剧情文本搜索</title>
     <style>
         * {
             box-sizing: border-box;
@@ -15,7 +15,7 @@
             color: #1e293b;
             line-height: 1.5;
             padding: 1.5rem;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         @media (prefers-color-scheme: dark) {
@@ -146,6 +146,8 @@
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
+            max-height: none;
+            overflow: visible;
         }
         .match-item {
             background: #f8fafd;
@@ -223,7 +225,7 @@
             background: #0f172a0d;
             padding: 1rem;
             border-radius: 16px;
-            max-height: 60vh;
+            max-height: 70vh;
             overflow: auto;
             white-space: pre-wrap;
             font-family: 'SF Mono', monospace;
@@ -257,7 +259,7 @@
         }
         .file-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1rem;
             margin-top: 1rem;
         }
@@ -278,6 +280,18 @@
             .file-grid-item {
                 background: #161b22;
                 border-color: #30363d;
+            }
+        }
+        .search-stats {
+            font-size: 0.9rem;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        @media (prefers-color-scheme: dark) {
+            .search-stats {
+                background: #1c2128;
             }
         }
     </style>
@@ -304,10 +318,12 @@
     </div>
 
     <div class="footer-note">
+        基于当前仓库 main 分支 · 自动发现所有 .txt 文件 · 点击行内链接预览上下文
     </div>
 
     <script>
         (function() {
+            // 预定义的文件列表 - 直接从你提供的文件名列表生成
             const TXT_FILES = [
                 "Act01_Chapter01_全剧情.txt",
                 "Act01_Chapter02_全剧情.txt",
@@ -349,8 +365,8 @@
                     const repo = pathSegments[0] || '';
                     baseUrl = `https://cdn.gh-proxy.org/https://raw.githubusercontent.com/${username}/${repo}/main/`;
                 } else {
-                    // 本地测试或直接访问 - 默认使用AA1x/AA1x仓库
-                    baseUrl = `https://cdn.gh-proxy.org/https://raw.githubusercontent.com/AA1x/search/main/`;
+
+                    baseUrl = `https://cdn.gh-proxy.org/https://raw.githubusercontent.com/aa1x/search/main/`;
                 }
                 
                 return baseUrl;
@@ -460,7 +476,11 @@
                     return;
                 }
                 
-                let html = `<ul class="file-list">`;
+                // 计算总匹配数
+                const totalMatches = results.reduce((sum, res) => sum + res.matches.length, 0);
+                
+                let html = `<div class="search-stats">找到 ${results.length} 个文件，共 ${totalMatches} 处匹配</div>`;
+                html += `<ul class="file-list">`;
                 
                 for (const res of results) {
                     const file = res.file;
@@ -473,7 +493,8 @@
                     </div>`;
                     html += `<div class="matches">`;
                     
-                    matches.slice(0, 10).forEach(m => {
+                    // 显示所有匹配，不限制数量
+                    matches.forEach(m => {
                         html += `<div class="match-item">`;
                         html += `<div class="match-line">行 ${m.lineNumber}</div>`;
                         html += `<div class="match-context">`;
@@ -491,10 +512,6 @@
                         html += `<a href="#" class="match-link" data-path="${escapeHtml(file.path)}" data-keyword="${escapeHtml(keyword)}" data-line="${m.lineNumber}">预览全文 高亮定位 ›</a>`;
                         html += `</div>`;
                     });
-                    
-                    if (matches.length > 10) {
-                        html += `<div style="margin-top:0.5rem; font-size:0.85rem;">…… 还有 ${matches.length-10} 处匹配未显示</div>`;
-                    }
                     
                     html += `</div></li>`;
                 }
