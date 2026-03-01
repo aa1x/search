@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>剧情文本搜索</title>
+    <title>魔裁剧情文本搜索</title>
     <style>
         * {
             box-sizing: border-box;
@@ -53,10 +53,7 @@
         h1 {
             font-size: 1.8rem;
             font-weight: 600;
-            background: linear-gradient(145deg, #2563eb, #7c3aed);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #2563eb;
         }
         .search-box {
             display: flex;
@@ -247,12 +244,6 @@
             text-align: center;
             padding: 3rem;
         }
-        .footer-note {
-            margin-top: 2.5rem;
-            font-size: 0.8rem;
-            color: #6f7d95;
-            text-align: center;
-        }
         .line-container {
             display: flex;
             margin-bottom: 2px;
@@ -298,7 +289,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>魔裁剧情全文本搜索</h1>
+        <h1>魔裁剧情文本搜索</h1>
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="输入关键词" autofocus>
             <button id="searchBtn">搜索全部</button>
@@ -317,13 +308,9 @@
         <div id="previewContent" class="preview-content">加载中...</div>
     </div>
 
-    <div class="footer-note">
-        基于当前仓库 main 分支 · 自动发现所有 .txt 文件 · 点击行内链接预览上下文
-    </div>
-
     <script>
         (function() {
-            // 预定义的文件列表 - 直接从你提供的文件名列表生成
+            // 预定义的文件列表
             const TXT_FILES = [
                 "Act01_Chapter01_全剧情.txt",
                 "Act01_Chapter02_全剧情.txt",
@@ -353,20 +340,16 @@
             const previewContent = document.getElementById('previewContent');
             const closePreviewBtn = document.getElementById('closePreviewBtn');
 
-            // 获取当前仓库的基础URL
             function getBaseUrl() {
-                // 从当前页面URL获取仓库信息
                 const pathSegments = window.location.pathname.split('/').filter(p => p);
                 let baseUrl;
                 
                 if (window.location.hostname.includes('github.io')) {
-                    // 格式: username.github.io/repo-name/
                     const username = window.location.hostname.split('.')[0];
                     const repo = pathSegments[0] || '';
-                    baseUrl = `https://cdn.gh-proxy.org/https://raw.githubusercontent.com/${username}/${repo}/main/`;
+                    baseUrl = `https://gh-proxy.com/https://raw.githubusercontent.com/${username}/${repo}/main/`;
                 } else {
-
-                    baseUrl = `https://cdn.gh-proxy.org/https://raw.githubusercontent.com/aa1x/search/main/`;
+                    baseUrl = `https://gh-proxy.com/https://raw.githubusercontent.com/aa1x/search/main/`;
                 }
                 
                 return baseUrl;
@@ -408,7 +391,7 @@
                 
                 statsArea.innerText = `已加载 ${allTxtFiles.length}/${TXT_FILES.length} 个文本文件，输入关键词搜索`;
                 
-                // 显示文件列表
+
                 displayFileGrid();
                 
                 return allTxtFiles;
@@ -417,7 +400,7 @@
             function displayFileGrid() {
                 let html = '<div class="file-grid">';
                 allTxtFiles.forEach(file => {
-                    html += `<div class="file-grid-item" onclick="document.getElementById('searchInput').focus()">
+                    html += `<div class="file-grid-item" onclick="previewFile('${escapeHtml(file.path)}')">
                         <div style="font-weight:600; margin-bottom:0.5rem;">📄 ${escapeHtml(file.name)}</div>
                         <div style="font-size:0.85rem; color:#64748b;">${file.lines.length} 行</div>
                     </div>`;
@@ -425,6 +408,11 @@
                 html += '</div>';
                 resultsArea.innerHTML = html;
             }
+
+
+            window.previewFile = async function(filePath) {
+                await showPreview(filePath, '', 1);
+            };
 
             function searchInAllFiles(keyword) {
                 if (!keyword || keyword.trim() === '') return [];
@@ -476,7 +464,7 @@
                     return;
                 }
                 
-                // 计算总匹配数
+
                 const totalMatches = results.reduce((sum, res) => sum + res.matches.length, 0);
                 
                 let html = `<div class="search-stats">找到 ${results.length} 个文件，共 ${totalMatches} 处匹配</div>`;
@@ -493,7 +481,7 @@
                     </div>`;
                     html += `<div class="matches">`;
                     
-                    // 显示所有匹配，不限制数量
+
                     matches.forEach(m => {
                         html += `<div class="match-item">`;
                         html += `<div class="match-line">行 ${m.lineNumber}</div>`;
@@ -621,7 +609,7 @@
             });
             closePreviewBtn.addEventListener('click', closePreview);
 
-            // 自动加载文件列表
+
             loadAllFiles();
         })();
     </script>
